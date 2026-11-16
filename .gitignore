@@ -1,0 +1,28 @@
+# Dipendenze
+node_modules/
+node_modules
+
+# Build
+dist/
+build/
+
+# Ambiente (SEGRETI! Non caricare mai su GitHub)
+.env
+.env.local
+.env.*
+*.env
+
+# Log
+*.log
+npm-debug.log*
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Prisma
+prisma/*.db
+prisma/*.db-journal
+
+# Vite
+.vite/

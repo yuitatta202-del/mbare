@@ -1,0 +1,41 @@
+mbare-frontend/
+│
+├── .env                        # Variabili d'ambiente (URL e chiavi di Supabase)
+├── .gitignore                  # File e cartelle da non caricare su Git
+├── index.html                  # Il file HTML principale (dove React viene "montato")
+├── package.json                # Dipendenze del progetto (React, Supabase, ecc.)
+├── postcss.config.js           # Configurazione PostCSS (per Tailwind)
+├── tailwind.config.js          # Configurazione di Tailwind CSS (colori, font)
+├── tsconfig.json               # Configurazione di TypeScript
+├── vite.config.ts              # Configurazione di Vite (plugin React e Tailwind)
+│
+├── public/                     # Asset statici (favicon, immagini pubbliche)
+│   └── ...
+│
+└── src/                        # Il cuore dell'applicazione frontend
+    │
+    ├── assets/                 # Immagini, loghi, font locali (se non usi quelli di Google)
+    │   └── ...
+    │
+    ├── components/             # Componenti UI riutilizzabili in più pagine
+    │   ├── Footer.tsx          # Il footer fisso in basso
+    │   ├── Navbar.tsx          # La barra di navigazione in alto
+    │   └── SpicyMeter.tsx      # La barra animata per votare lo "spicy" delle confessioni
+    │
+    ├── hooks/                  # Custom Hooks di React
+    │   └── useUser.ts          # (Da creare) Per gestire lo stato di login e il ruolo utente
+    │
+    ├── lib/                    # Configurazioni di librerie esterne
+    │   └── supabase.ts         # Inizializzazione del client Supabase (connessione al DB)
+    │
+    ├── pages/                  # Le pagine vere e proprie dell'applicazione
+    │   ├── Community.tsx       # Pagina con eventi, incontri e bacheca
+    │   ├── Confessioni.tsx     # Pagina con il form per inviare le confessioni
+    │   ├── Home.tsx            # La landing page con il titolo gigante
+    │   ├── Login.tsx           # (Da creare) Pagina di accesso
+    │   ├── News.tsx            # Pagina con la lista delle notizie
+    │   └── Register.tsx        # (Da creare) Pagina di registrazione
+    │
+    ├── App.tsx                 # Il componente principale che gestisce le rotte (React Router)
+    ├── index.css               # Gli stili globali e la configurazione del tema (Tailwind v4)
+    └── main.tsx                # Il punto di ingresso dell'app (monta React nel DOM)

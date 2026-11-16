@@ -1,0 +1,147 @@
+/* ============================================
+   FONT IMPORT - Include tutti i font per la personalizzazione
+   ============================================ */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Space+Grotesk:wght@500;700&family=Space+Mono:wght@400;700&family=Bebas+Neue&family=Anton&family=Playfair+Display:wght@700;900&display=swap');
+@import "tailwindcss";
+
+/* Plugin per formattare il Markdown delle News */
+@plugin "@tailwindcss/typography";
+
+/* ============================================
+   VARIABILI CSS NATIVE PER IL TEMA DINAMICO
+   ============================================
+   Queste variabili vengono aggiornate dinamicamente
+   dal ThemeContext quando l'utente cambia le preferenze.
+*/
+:root {
+  --mbare-accent: #ff3b00;
+  --mbare-accent-hover: #ff5522;
+  --font-display: "Space Grotesk", system-ui, sans-serif;
+  --text-scale: 1;
+  --radius-base: 0px;
+  --animation-duration: 0.3s;
+}
+
+/* ============================================
+   CONFIGURAZIONE TEMA TAILWIND V4
+   ============================================ */
+@theme {
+  /* Colori custom per Mbare */
+  --color-mbare-black: #0a0a0a;
+  --color-mbare-white: #f4f4f5;
+  --color-mbare-accent: var(--mbare-accent);
+  --color-mbare-muted: #a1a1aa;
+  --color-mbare-border: #27272a;
+
+  /* Font custom - il display è dinamico */
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-display: var(--font-display);
+  --font-mono: "Space Mono", monospace;
+
+  /* Altre impostazioni */
+  --tracking-tighter: -0.05em;
+}
+
+/* ============================================
+   STILI BASE
+   ============================================ */
+@layer base {
+  html {
+    color-scheme: dark;
+    scroll-behavior: smooth;
+    /* Applica la dimensione del testo scelta dall'utente */
+    font-size: calc(16px * var(--text-scale));
+  }
+
+  body {
+    @apply bg-mbare-black text-mbare-white antialiased min-h-screen font-sans;
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Stile "brutale" per i titoli */
+  h1, h2, h3, h4 {
+    @apply font-display font-bold tracking-tighter uppercase;
+  }
+
+  /* Applica gli angoli personalizzati a tutti gli elementi interattivi */
+  button,
+  input,
+  textarea,
+  select,
+  .rounded-base {
+    border-radius: var(--radius-base);
+  }
+
+  /* Scrollbar personalizzata (stile dark, segue il tema) */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0a0a0a;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #27272a;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--mbare-accent);
+  }
+}
+
+/* ============================================
+   ACCESSIBILITÀ - RIDUZIONE ANIMAZIONI
+   ============================================
+   La classe .reduce-motion viene applicata al tag <html>
+   dal ThemeContext quando l'utente attiva l'opzione.
+*/
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* ============================================
+   STILI PER GLI INPUT RANGE (Slider)
+   ============================================ */
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+}
+
+input[type=range]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: none;
+}
+
+/* ============================================
+   UTILITIES CUSTOM
+   ============================================ */
+@layer utilities {
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: #0a0a0a;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #27272a;
+    border-radius: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--mbare-accent);
+  }
+
+  /* Utility per applicare il radius personalizzato a elementi specifici */
+  .radius-base {
+    border-radius: var(--radius-base);
+  }
+}

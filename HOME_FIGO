@@ -1,0 +1,56 @@
+import { Link } from 'react-router-dom';
+import { ScrambleText } from '../components/ScrambleText';
+
+export function Home() {
+  return (
+    // Aggiunto pt-32 (padding-top) per spingere il contenuto sotto la Navbar
+    <main className="flex flex-col justify-center items-center min-h-screen pt-32 pb-16 px-6 relative overflow-hidden">
+      
+      {/* Testo decorativo dietro (gigante, quasi invisibile) */}
+      <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none select-none overflow-hidden">
+        <h1 className="text-[35vw] font-display font-bold leading-none tracking-tighter">MBARE</h1>
+      </div>
+
+      <div className="z-10 text-center flex flex-col items-center w-full">
+        
+        {/* Titolo con effetto Scramble e dimensioni leggermente ridotte per non toccare la navbar */}
+        <h1 className="text-5xl sm:text-7xl md:text-[8rem] lg:text-[9rem] xl:text-[10rem] font-display font-bold leading-[0.85] tracking-tighter uppercase mb-8 flex flex-col items-center">
+          <ScrambleText text="Notizie." />
+          <span className="text-mbare-accent">
+            <ScrambleText text="Spicy." />
+          </span>
+          <ScrambleText text="Confessioni." />
+        </h1>
+        
+        {/* Sottotitolo */}
+        <p className="text-lg md:text-2xl text-mbare-muted max-w-2xl mx-auto mb-12 font-sans font-medium animate-slide-up px-4">
+          Il posto dove le notizie non sono noiose e le confessioni sono <span className="text-mbare-white font-bold">troppo spacchiose</span>. Senza filtri, come piace a te.
+        </p>
+
+        {/* Bottoni con Rotte */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center w-full max-w-2xl animate-slide-up">
+          <Link 
+            to="/confessioni" 
+            className="bg-mbare-white text-mbare-black px-10 py-5 text-xl font-bold uppercase tracking-tighter hover:bg-mbare-accent hover:text-white transition-all duration-200 border-2 border-mbare-white hover:border-mbare-accent w-full sm:w-auto text-center cursor-none"
+          >
+            Inizia a spifferare
+          </Link>
+          
+          <Link 
+            to="/news" 
+            className="bg-transparent text-mbare-white px-10 py-5 text-xl font-bold uppercase tracking-tighter border-2 border-mbare-border hover:border-mbare-white transition-all duration-200 w-full sm:w-auto text-center cursor-none"
+          >
+            Leggi le news
+          </Link>
+        </div>
+
+        {/* Piccola navigazione secondaria (opzionale) */}
+        <div className="mt-16 flex gap-8 font-mono text-xs text-mbare-muted uppercase animate-fade-in">
+          <Link to="/community" className="hover:text-mbare-white transition-colors cursor-none">Community</Link>
+          <Link to="/community/bacheca" className="hover:text-mbare-white transition-colors cursor-none">Bacheca</Link>
+        </div>
+
+      </div>
+    </main>
+  );
+}
