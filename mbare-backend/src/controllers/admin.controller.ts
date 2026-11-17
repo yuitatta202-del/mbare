@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { AdminService } from '../services/admin.service.js';
 import type { AuthRequest } from '../middleware/auth.js';
+import { AppError } from '../utils/errors.js'; // Assicurati di avere questo import
 
 export class AdminController {
   // ==========================================
@@ -14,9 +15,11 @@ export class AdminController {
 
   static async updateRole(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       const { role } = req.body;
       
+      if (!id) throw AppError.badRequest('ID utente mancante');
+
       const currentUserId = req.user?.sub || req.user?.id;
       if (req.user?.user_role === 'ADMIN' && id === currentUserId) {
         return res.status(403).json({ error: 'Non puoi cambiare il tuo stesso ruolo' });
@@ -28,8 +31,10 @@ export class AdminController {
 
   static async toggleActive(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       const { isActive } = req.body;
+
+      if (!id) throw AppError.badRequest('ID utente mancante');
 
       const currentUserId = req.user?.sub || req.user?.id;
       if (req.user?.user_role === 'ADMIN' && id === currentUserId) {
@@ -70,7 +75,7 @@ export class AdminController {
   static async createNews(req: AuthRequest, res: Response, next: NextFunction) {
     try { 
       const authorId = req.user?.sub || req.user?.id;
-      if (!authorId) throw new Error('Utente non identificato');
+      if (!authorId) throw AppError.badRequest('Utente non identificato');
 
       res.status(201).json({ message: 'News creata', data: await AdminService.createNews(req.body, authorId) }); 
     } catch (error) { next(error); }
@@ -78,7 +83,7 @@ export class AdminController {
 
   static async updateNews(req: AuthRequest, res: Response, next: NextFunction) {
     try { 
-      const rawId = req.params.id;
+      const rawId = req.params.id as string;
       let id: bigint;
       
       try {
@@ -94,7 +99,7 @@ export class AdminController {
 
   static async deleteNews(req: Request, res: Response, next: NextFunction) {
     try { 
-      const rawId = req.params.id;
+      const rawId = req.params.id as string;
       let id: bigint;
       
       try {
@@ -119,19 +124,25 @@ export class AdminController {
 
   static async approveSpiffera(req: AuthRequest, res: Response, next: NextFunction) {
     try { 
+      const id = req.params.id as string;
       const moderatorId = req.user?.sub || req.user?.id;
-      if (!moderatorId) throw new Error('Moderatore non identificato');
+      
+      if (!id) throw AppError.badRequest('ID spiffera mancante');
+      if (!moderatorId) throw AppError.badRequest('Moderatore non identificato');
 
-      res.json({ message: 'Approvata', data: await AdminService.approveConfession(req.params.id, moderatorId) }); 
+      res.json({ message: 'Approvata', data: await AdminService.approveConfession(id, moderatorId) }); 
     } catch (error) { next(error); }
   }
 
   static async rejectSpiffera(req: AuthRequest, res: Response, next: NextFunction) {
     try { 
+      const id = req.params.id as string;
       const moderatorId = req.user?.sub || req.user?.id;
-      if (!moderatorId) throw new Error('Moderatore non identificato');
+      
+      if (!id) throw AppError.badRequest('ID spiffera mancante');
+      if (!moderatorId) throw AppError.badRequest('Moderatore non identificato');
 
-      res.json({ message: 'Rifiutata', data: await AdminService.rejectConfession(req.params.id, moderatorId) }); 
+      res.json({ message: 'Rifiutata', data: await AdminService.rejectConfession(id, moderatorId) }); 
     } catch (error) { next(error); }
   }
 
@@ -146,13 +157,19 @@ export class AdminController {
 
   static async approveEvent(req: Request, res: Response, next: NextFunction) {
     try { 
-      res.json({ message: 'Approvato', data: await AdminService.approveEvent(req.params.id) }); 
+      const id = req.params.id as string;
+      if (!id) throw AppError.badRequest('ID evento mancante');
+
+      res.json({ message: 'Approvato', data: await AdminService.approveEvent(id) }); 
     } catch (error) { next(error); }
   }
 
   static async deleteEvent(req: Request, res: Response, next: NextFunction) {
     try { 
-      await AdminService.deleteEvent(req.params.id); 
+      const id = req.params.id as string;
+      if (!id) throw AppError.badRequest('ID evento mancante');
+
+      await AdminService.deleteEvent(id); 
       res.json({ message: 'Eliminato' }); 
     } catch (error) { next(error); }
   }
@@ -168,7 +185,10 @@ export class AdminController {
 
   static async deleteGroup(req: Request, res: Response, next: NextFunction) {
     try { 
-      await AdminService.deleteGroup(req.params.id); 
+      const id = req.params.id as string;
+      if (!id) throw AppError.badRequest('ID gruppo mancante');
+
+      await AdminService.deleteGroup(id); 
       res.json({ message: 'Eliminato' }); 
     } catch (error) { next(error); }
   }
@@ -184,19 +204,25 @@ export class AdminController {
 
   static async resolveReport(req: AuthRequest, res: Response, next: NextFunction) {
     try { 
+      const id = req.params.id as string;
       const resolverId = req.user?.sub || req.user?.id;
-      if (!resolverId) throw new Error('Utente non identificato');
+      
+      if (!id) throw AppError.badRequest('ID segnalazione mancante');
+      if (!resolverId) throw AppError.badRequest('Utente non identificato');
 
-      res.json({ message: 'Risolto', data: await AdminService.resolveReport(req.params.id, resolverId) }); 
+      res.json({ message: 'Risolto', data: await AdminService.resolveReport(id, resolverId) }); 
     } catch (error) { next(error); }
   }
 
   static async dismissReport(req: AuthRequest, res: Response, next: NextFunction) {
     try { 
+      const id = req.params.id as string;
       const resolverId = req.user?.sub || req.user?.id;
-      if (!resolverId) throw new Error('Utente non identificato');
+      
+      if (!id) throw AppError.badRequest('ID segnalazione mancante');
+      if (!resolverId) throw AppError.badRequest('Utente non identificato');
 
-      res.json({ message: 'Ignorato', data: await AdminService.dismissReport(req.params.id, resolverId) }); 
+      res.json({ message: 'Ignorato', data: await AdminService.dismissReport(id, resolverId) }); 
     } catch (error) { next(error); }
   }
 
@@ -211,12 +237,15 @@ export class AdminController {
 
   static async deleteBoardPost(req: Request, res: Response, next: NextFunction) {
     try {
-      await AdminService.deleteAnyBoardPost(req.params.id);
+      const id = req.params.id as string;
+      if (!id) throw AppError.badRequest('ID annuncio mancante');
+
+      await AdminService.deleteAnyBoardPost(id);
       res.json({ message: 'Annuncio eliminato' });
     } catch (error) { next(error); }
   }
 
-    // ==========================================
+  // ==========================================
   // 10. GESTIONE MBARE COIN
   // ==========================================
   static async getCoinDashboard(req: Request, res: Response, next: NextFunction) {

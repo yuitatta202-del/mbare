@@ -1,7 +1,6 @@
 import { prisma } from '../config/prisma.js';
-import { NewsService } from './news.service.js'; // Importiamo NewsService per riutilizzare la logica
+import { NewsService } from './news.service.js'; 
 import { TokenService } from './token.service.js'; 
-
 
 export class AdminService {
   // ==========================================
@@ -58,7 +57,6 @@ export class AdminService {
   // NEWS
   // ==========================================
   static async getAllNews() {
-    // FIX: Aggiunta l'inclusione della categoria per farla vedere nella lista admin
     return await prisma.post.findMany({
       orderBy: { createdAt: 'desc' },
       include: { 
@@ -69,12 +67,10 @@ export class AdminService {
   }
 
   static async createNews(data: any, authorId: string) {
-    // Delega a NewsService per gestire correttamente tags, slug e categoria (BigInt)
     return await NewsService.createNews(data, authorId);
   }
 
   static async updateNews(id: bigint, data: any) {
-    // FIX: Aggiunto il metodo mancante per la modifica della news
     return await NewsService.updateNews(id, data);
   }
 
@@ -185,11 +181,11 @@ export class AdminService {
       where: { id },
     });
   }
-    // ==========================================
+
+  // ==========================================
   // 9. ANALYTICS (DASHBOARD 360)
   // ==========================================
   static async getAnalytics() {
-    // Eseguiamo tutte le query in parallelo per massima velocità
     const [
       totalUsers,
       totalPosts,
@@ -207,20 +203,17 @@ export class AdminService {
       prisma.post.aggregate({ _sum: { viewCount: true } }),
       prisma.tokenTransaction.aggregate({ _sum: { amount: true }, where: { amount: { gt: 0 } } }),
       
-      // Top 5 Post più visti
       prisma.post.findMany({
         take: 5,
         orderBy: { viewCount: 'desc' },
         select: { title: true, viewCount: true, slug: true }
       }),
       
-      // Spiffera raggruppate per categoria (per il grafico a torta)
       prisma.spiffera.groupBy({
         by: ['category'],
         _count: { _all: true }
       }),
 
-      // Utenti registrati negli ultimi 7 giorni (per il grafico a linee)
       prisma.profile.findMany({
         where: {
           createdAt: {
@@ -230,7 +223,6 @@ export class AdminService {
         select: { createdAt: true }
       }),
 
-      // Transazioni degli ultimi 7 giorni (per il grafico delle entrate)
       prisma.tokenTransaction.findMany({
         where: {
           createdAt: {
@@ -242,11 +234,7 @@ export class AdminService {
       })
     ]);
 
-    // Formattiamo i dati per i grafici
-    // 1. Utenti per giorno (ultimi 7 giorni)
     const userGrowth = this.formatChartData(recentUsers, 'createdAt');
-    
-    // 2. Token guadagnati per giorno (ultimi 7 giorni)
     const tokenGrowth = this.formatChartData(recentTransactions, 'createdAt', 'amount');
 
     return {
@@ -266,7 +254,6 @@ export class AdminService {
     };
   }
 
-  // Funzione di supporto per raggruppare i dati per giorno
   private static formatChartData(data: any[], dateField: string, valueField?: string) {
     const grouped = data.reduce((acc: any, curr: any) => {
       const date = new Date(curr[dateField]).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' });
@@ -278,7 +265,6 @@ export class AdminService {
       return acc;
     }, {});
 
-    // Assicuriamoci che gli ultimi 7 giorni siano tutti presenti (anche se 0)
     const last7Days = Array.from({ length: 7 }).map((_, i) => {
       const d = new Date();
       d.setDate(d.getDate() - (6 - i));
@@ -288,23 +274,18 @@ export class AdminService {
     return last7Days.map(date => grouped[date] || { date, count: 0, amount: 0 });
   }
 
-
   // ==========================================
   // 10. GESTIONE MBARE COIN
   // ==========================================
   static async getCoinDashboard() {
     const [wallets, totalTokens, totalEarned, recentTransactions] = await Promise.all([
-      // Prendi i primi 50 wallet per saldo
       prisma.wallet.findMany({
         orderBy: { balance: 'desc' },
         take: 50,
         include: { user: { select: { username: true, email: true, role: true } } }
       }),
-      // Totale token in circolazione
       prisma.wallet.aggregate({ _sum: { balance: true } }),
-      // Totale token guadagnati di sempre
       prisma.wallet.aggregate({ _sum: { totalEarned: true } }),
-      // Ultime 20 transazioni
       prisma.tokenTransaction.findMany({
         orderBy: { createdAt: 'desc' },
         take: 20,
@@ -325,7 +306,6 @@ export class AdminService {
   static async adjustTokens(userId: string, amount: number, reason: string) {
     if (amount === 0) throw new Error("L'importo non può essere zero");
     
-    // Usa il TokenService per gestire l'aggiunta o la spesa in modo sicuro (con i trigger)
     if (amount > 0) {
       return await TokenService.addTokens(userId, amount, reason || 'Rettifica Admin');
     } else {
@@ -334,7 +314,6 @@ export class AdminService {
   }
 
   static async broadcastNotification(title: string, message: string) {
-    // Prendi tutti gli ID utente attivi
     const users = await prisma.profile.findMany({ 
       where: { isActive: true },
       select: { id: true } 
@@ -342,9 +321,9 @@ export class AdminService {
 
     if (users.length === 0) throw new Error("Nessun utente trovato");
 
-    // Crea una notifica per ogni utente
+    // FIX: Prisma si aspetta "user_id" e non "userId" per la creazione massiva
     const notifications = users.map(u => ({
-      userId: u.id,
+      user_id: u.id, 
       title,
       message,
       type: 'INFO'
