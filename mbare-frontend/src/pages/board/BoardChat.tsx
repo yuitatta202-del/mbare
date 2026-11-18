@@ -1,184 +1,621 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // <-- AGGIUNTO
+
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState
+} from 'react';
+
+import type { FormEvent } from 'react';
+
+import {
+  Link,
+  useNavigate,
+  useParams
+} from 'react-router-dom';
+
 import { useUser } from '../../hooks/useUser';
 import { supabase } from '../../lib/supabase';
-import { BOARD_TYPES, getRealBoardType } from '../../config/boardConfig';
+import { API_URL } from '../../config/api';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+// ==========================================
+// MBARE - BOARD CHAT
+// React + Vite + TypeScript
+// ==========================================
 
-export function BoardCard({ post, onRefresh }: { post: any, onRefresh: () => void }) {
-  const { user } = useUser();
-  const navigate = useNavigate(); // <-- INIZIALIZZATO
-  const [isSaved, setIsSaved] = useState(false); 
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isBumping, setIsBumping] = useState(false);
+interface BoardPost {
+  id: string;
+  title: string;
+  content?: string;
+  price?: number | string | null;
+  city?: string | null;
+  authorId?: string | null;
+  author_id?: string | null;
+  author?: {
+    username?: string | null;
+  } | null;
+}
 
-  const realType = getRealBoardType(post);
-  const config = BOARD_TYPES[realType] || BOARD_TYPES['OFFRO'];
-  const isAuthor = user?.id === (post.author_id || post.authorId);
-  const authorName = post.author?.username || 'Anonimo';
-  const dateStr = post.created_at || post.createdAt;
-  const formattedDate = dateStr ? new Date(dateStr).toLocaleDateString('it-IT') : '';
+interface ChatMessage {
+  id: string;
+  conversationId: string;
+  senderId: string | null;
+  content: string;
+  createdAt: string;
+  sender?: {
+    username?: string | null;
+    avatarUrl?: string | null;
+  } | null;
+}
 
-  // 🔥 FIX: Ora cliccando sulla card vai alla chat e incrementi la view
-  const handleCardClick = async () => {
-    try {
-      await fetch(`${API_URL}/board/${post.id}/view`, { method: 'POST' });
-    } catch (err) { /* ignore */ }
-    
-    // Naviga alla chat contestuale
-    navigate(`/board/${post.id}/chat`);
-  };
+interface ContactResponse {
+  conversationId: string;
+}
 
-  const handleSave = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!user) return alert('Loggati per salvare!');
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(`${API_URL}/board/${post.id}/save`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${session?.access_token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setIsSaved(data.saved);
-      }
-    } catch (err) { console.error(err); }
-  };
+const MAX_MESSAGE_LENGTH = 1000;
+const REFRESH_INTERVAL = 10000;
 
-  const handleBump = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!confirm('Vuoi spendere 20 Coin per spingere in cima questo annuncio?')) return;
-    setIsBumping(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(`${API_URL}/board/${post.id}/bump`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${session?.access_token}` }
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error);
-      }
-      alert('Annuncio spinto in cima!');
-      onRefresh();
-    } catch (err: any) {
-      alert(err.message);
-    } finally {
-      setIsBumping(false);
+// ==========================================
+// HELPERS
+// ==========================================
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return 'Si è verificato un errore imprevisto.';
+}
+
+async function authorizedRequest<T>(
+  path: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const {
+    data: { session },
+    error: sessionError
+  } = await supabase.auth.getSession();
+
+  if (sessionError || !session?.access_token) {
+    throw new Error(
+      'Sessione scaduta. Effettua nuovamente il login.'
+    );
+  }
+
+  const headers = new Headers(options.headers);
+
+  headers.set(
+    'Authorization',
+    `Bearer ${session.access_token}`
+  );
+
+  headers.set('Accept', 'application/json');
+
+  if (options.body && !(options.body instanceof FormData)) {
+    headers.set('Content-Type', 'application/json');
+  }
+
+  const response = await fetch(
+    `${API_URL}${path}`,
+    {
+      ...options,
+      headers
     }
-  };
+  );
 
-  const handleDelete = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!confirm('Vuoi eliminare questo annuncio?')) return;
-    setIsDeleting(true);
+  const data: unknown = await response
+    .json()
+    .catch(() => null);
+
+  if (!response.ok) {
+    const body =
+      data !== null &&
+      typeof data === 'object'
+        ? data as Record<string, unknown>
+        : null;
+
+    const message =
+      typeof body?.error === 'string'
+        ? body.error
+        : typeof body?.message === 'string'
+          ? body.message
+          : `Errore HTTP ${response.status}`;
+
+    throw new Error(message);
+  }
+
+  return data as T;
+}
+
+// ==========================================
+// COMPONENTE PRINCIPALE
+// ==========================================
+
+export function BoardChat() {
+  const { postId } = useParams<{ postId: string }>();
+
+  const navigate = useNavigate();
+  const { user, loading: authLoading } = useUser();
+
+  const [post, setPost] = useState<BoardPost | null>(null);
+
+  const [conversationId, setConversationId] =
+    useState<string | null>(null);
+
+  const [messages, setMessages] =
+    useState<ChatMessage[]>([]);
+
+  const [content, setContent] = useState('');
+
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+
+  const [error, setError] =
+    useState<string | null>(null);
+
+  const bottomRef = useRef<HTMLDivElement | null>(null);
+
+  // ========================================
+  // CARICAMENTO MESSAGGI
+  // ========================================
+
+  const loadMessages = useCallback(
+    async (id: string): Promise<ChatMessage[]> => {
+      return authorizedRequest<ChatMessage[]>(
+        `/api/chat/${encodeURIComponent(id)}/messages?limit=50`
+      );
+    },
+    []
+  );
+
+  // ========================================
+  // INIZIALIZZAZIONE
+  // ========================================
+
+  useEffect(() => {
+    if (authLoading) {
+      return;
+    }
+
+    if (!postId || !user?.id) {
+      setLoading(false);
+      setError(
+        !postId
+          ? 'Annuncio non valido.'
+          : 'Devi effettuare il login per utilizzare la chat.'
+      );
+      return;
+    }
+
+    let cancelled = false;
+
+    const currentPostId = postId;
+    const currentUserId = user.id;
+
+    async function initializeChat() {
+      setLoading(true);
+      setError(null);
+      setPost(null);
+      setConversationId(null);
+      setMessages([]);
+
+      try {
+        // 1. Recupera l'annuncio.
+        const postResponse = await fetch(
+          `${API_URL}/api/board/${encodeURIComponent(currentPostId)}`
+        );
+
+        if (!postResponse.ok) {
+          throw new Error(
+            'Annuncio non trovato o non disponibile.'
+          );
+        }
+
+        const boardPost =
+          await postResponse.json() as BoardPost;
+
+        if (cancelled) return;
+
+        setPost(boardPost);
+
+        const authorId =
+          boardPost.authorId ??
+          boardPost.author_id;
+
+        if (authorId === currentUserId) {
+          throw new Error(
+            'Non puoi avviare una chat con te stesso.'
+          );
+        }
+
+        // 2. Recupera o crea la conversazione.
+        const contact =
+          await authorizedRequest<ContactResponse>(
+            `/api/board/${encodeURIComponent(currentPostId)}/contact`,
+            {
+              method: 'POST'
+            }
+          );
+
+        if (!contact.conversationId) {
+          throw new Error(
+            'Il backend non ha restituito una conversazione valida.'
+          );
+        }
+
+        if (cancelled) return;
+
+        // 3. Carica i messaggi iniziali.
+        const initialMessages =
+          await loadMessages(contact.conversationId);
+
+        if (cancelled) return;
+
+        setConversationId(contact.conversationId);
+        setMessages(initialMessages);
+
+      } catch (err) {
+        if (!cancelled) {
+          setError(getErrorMessage(err));
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void initializeChat();
+
+    return () => {
+      cancelled = true;
+    };
+
+  }, [
+    postId,
+    user?.id,
+    authLoading,
+    loadMessages
+  ]);
+
+  // ========================================
+  // AGGIORNAMENTO MESSAGGI
+  // ========================================
+
+  useEffect(() => {
+    if (!conversationId) return;
+
+    let active = true;
+    let busy = false;
+
+    const updateMessages = async () => {
+      if (
+        !active ||
+        busy ||
+        document.visibilityState !== 'visible'
+      ) {
+        return;
+      }
+
+      busy = true;
+
+      try {
+        const result = await loadMessages(conversationId);
+
+        if (active) {
+          setMessages(result);
+        }
+      } catch (err) {
+        console.error(
+          '[MBARE CHAT] Errore aggiornamento:',
+          err
+        );
+      } finally {
+        busy = false;
+      }
+    };
+
+    const interval = window.setInterval(
+      () => {
+        void updateMessages();
+      },
+      REFRESH_INTERVAL
+    );
+
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, [conversationId, loadMessages]);
+
+  // ========================================
+  // SCROLL MESSAGGI
+  // ========================================
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest'
+    });
+  }, [messages]);
+
+  // ========================================
+  // INVIO MESSAGGIO
+  // ========================================
+
+  const handleSendMessage = async (
+    event: FormEvent<HTMLFormElement>
+  ) => {
+    event.preventDefault();
+
+    const cleanContent = content.trim();
+
+    if (
+      !conversationId ||
+      !cleanContent ||
+      sending
+    ) {
+      return;
+    }
+
+    if (cleanContent.length > MAX_MESSAGE_LENGTH) {
+      setError(
+        `Massimo ${MAX_MESSAGE_LENGTH} caratteri per messaggio.`
+      );
+      return;
+    }
+
+    setSending(true);
+    setError(null);
+
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(`${API_URL}/board/${post.id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${session?.access_token}` }
+      const message = await authorizedRequest<ChatMessage>(
+        `/api/chat/${encodeURIComponent(conversationId)}/messages`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            content: cleanContent
+          })
+        }
+      );
+
+      setContent('');
+
+      // Mostra immediatamente il messaggio inviato.
+      setMessages(previous => {
+        if (previous.some(item => item.id === message.id)) {
+          return previous;
+        }
+
+        return [...previous, message];
       });
-      if (res.ok) onRefresh();
-      else alert('Errore durante l\'eliminazione');
+
+      const updated = await loadMessages(conversationId);
+
+      setMessages(updated);
+
     } catch (err) {
-      alert('Errore durante l\'eliminazione');
+      setError(getErrorMessage(err));
     } finally {
-      setIsDeleting(false);
+      setSending(false);
     }
   };
+
+  // ========================================
+  // INTERFACCIA
+  // ========================================
 
   return (
-    <div 
-      onClick={handleCardClick} // <-- CAMBIATO QUI
-      className="bg-mbare-surface border-2 border-mbare-border flex flex-col justify-between hover:border-mbare-white hover:shadow-[6px_6px_0_0_#ff3b00] transition-all group relative cursor-pointer overflow-hidden"
-    >
-      {/* IMMAGINE COPERTINA */}
-      {post.images && post.images.length > 0 ? (
-        <div className="w-full h-40 bg-mbare-black border-b-2 border-mbare-border relative overflow-hidden">
-          <img 
-            src={post.images[0]} 
-            alt={post.title} 
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-            onError={(e) => (e.currentTarget.style.display = 'none')} 
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-mbare-black via-transparent to-transparent"></div>
-        </div>
-      ) : (
-        <div className="w-full h-2 bg-mbare-border"></div>
-      )}
+    <main className="min-h-screen bg-mbare-black text-mbare-white pt-24 pb-10 px-4">
 
-      <div className="p-5 flex-grow flex flex-col">
-        <div className="flex justify-between items-center mb-3">
-          <span className={`text-[10px] font-bold px-2 py-1 uppercase ${config.color}`}>
-            {config.icon} {config.label}
+      <div className="max-w-4xl mx-auto">
+
+        {/* HEADER */}
+        <div className="flex items-center justify-between gap-4 mb-6">
+          <button
+            type="button"
+            onClick={() => navigate('/bacheca')}
+            className="font-mono text-sm text-mbare-muted hover:text-mbare-accent transition-colors"
+          >
+            ← Torna alla Bacheca
+          </button>
+
+          <span className="font-mono text-xs text-mbare-accent font-bold uppercase">
+            MBARE CHAT
           </span>
-          
-          <div className="flex items-center gap-3">
-            <span className="font-mono text-[10px] text-mbare-muted">{formattedDate}</span>
-            <button onClick={handleSave} className="text-lg hover:scale-110 transition-transform">
-              {isSaved ? '❤️' : '🤍'}
-            </button>
-          </div>
         </div>
 
-        <h3 className="text-lg font-display font-bold uppercase text-white mb-2 group-hover:text-mbare-accent transition-colors line-clamp-2">
-          {post.title}
-        </h3>
+        <div className="bg-mbare-surface border-2 border-mbare-border">
 
-        <p className="text-mbare-muted font-sans text-sm mb-4 line-clamp-3 flex-grow">
-          {post.content}
-        </p>
+          {/* DETTAGLI ANNUNCIO */}
+          <header className="p-5 border-b-2 border-mbare-border">
 
-        <div className="flex flex-wrap gap-1 mb-4">
-          {post.city && (
-            <span className="text-[9px] font-mono uppercase bg-mbare-accent text-black px-1.5 py-0.5 font-bold">
-              📍 {post.city}
+            <span className="font-mono text-xs text-mbare-accent uppercase">
+              Conversazione privata
             </span>
-          )}
-          {post.tags && post.tags.slice(0, 3).map((tag: string) => (
-            <span key={tag} className="text-[9px] font-mono uppercase bg-mbare-black border border-mbare-border px-1.5 py-0.5 text-mbare-muted">
-              #{tag}
-            </span>
-          ))}
-        </div>
-      </div>
 
-      <div className="px-5 pb-5">
-        {post.price && (
-          <div className="mb-3">
-            <span className="text-xl font-display font-bold text-white">
-              €{Number(post.price).toFixed(2)}
-              <span className="text-[10px] text-mbare-muted font-normal">{config.priceSuffix}</span>
-            </span>
-          </div>
-        )}
+            <h1 className="text-2xl md:text-3xl font-display font-bold uppercase mt-2">
+              {post?.title || 'Chat annuncio'}
+            </h1>
 
-        <div className="flex items-center justify-between border-t border-mbare-border pt-3 mt-3">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-mbare-accent flex items-center justify-center text-[10px] font-bold text-black uppercase">
-              {authorName.charAt(0)}
-            </div>
-            <span className="font-mono text-[10px] text-mbare-muted uppercase truncate max-w-[80px]">
-              {authorName}
-            </span>
-          </div>
-          
-          <div className="flex items-center gap-3 text-mbare-muted text-[10px] font-mono">
-            <span>👁️ {post.viewCount || 0}</span>
-            {isAuthor && (
-              <>
-                <button onClick={handleBump} disabled={isBumping} className="text-mbare-accent font-bold hover:text-white" title="Spingi in cima (20 Coin)">
-                  {isBumping ? '...' : '🚀'}
-                </button>
-                <button onClick={handleDelete} disabled={isDeleting} className="text-red-500 font-bold hover:text-white" title="Elimina">
-                  {isDeleting ? '...' : '🗑️'}
-                </button>
-              </>
+            {post && (
+              <div className="flex flex-wrap items-center gap-4 mt-4 text-sm text-mbare-muted">
+                <span>
+                  👤 {post.author?.username || 'Autore'}
+                </span>
+
+                {post.city && (
+                  <span>📍 {post.city}</span>
+                )}
+
+                {post.price != null && (
+                  <span className="font-bold text-mbare-accent">
+                    €{Number(post.price).toFixed(2)}
+                  </span>
+                )}
+              </div>
             )}
-          </div>
+          </header>
+
+          {/* AREA MESSAGGI */}
+          <section
+            className="h-[50vh] min-h-[320px] overflow-y-auto p-4 md:p-6 space-y-4"
+            aria-label="Messaggi della conversazione"
+          >
+
+            {loading && (
+              <div className="h-full flex items-center justify-center">
+                <p className="text-mbare-muted font-mono animate-pulse">
+                  Caricamento conversazione...
+                </p>
+              </div>
+            )}
+
+            {!loading && error && !conversationId && (
+              <div className="text-center py-12">
+                <p
+                  role="alert"
+                  className="text-red-400 mb-5"
+                >
+                  {error}
+                </p>
+
+                <Link
+                  to="/bacheca"
+                  className="text-mbare-accent underline font-mono text-sm"
+                >
+                  Torna agli annunci
+                </Link>
+              </div>
+            )}
+
+            {!loading &&
+              conversationId &&
+              messages.length === 0 && (
+                <div className="h-full flex flex-col items-center justify-center text-center">
+                  <span className="text-5xl mb-4">
+                    💬
+                  </span>
+
+                  <h2 className="font-display font-bold text-xl uppercase">
+                    Nessun messaggio
+                  </h2>
+
+                  <p className="text-mbare-muted text-sm mt-2">
+                    Inizia la conversazione con l'autore.
+                  </p>
+                </div>
+              )}
+
+            {messages.map(message => {
+              const isMine =
+                message.senderId === user?.id;
+
+              return (
+                <div
+                  key={message.id}
+                  className={`flex ${
+                    isMine
+                      ? 'justify-end'
+                      : 'justify-start'
+                  }`}
+                >
+                  <div
+                    className={`max-w-[85%] md:max-w-[70%] px-4 py-3 border ${
+                      isMine
+                        ? 'bg-mbare-accent text-black border-mbare-accent'
+                        : 'bg-mbare-black text-mbare-white border-mbare-border'
+                    }`}
+                  >
+                    <p className="font-mono text-xs font-bold mb-2">
+                      {isMine
+                        ? 'Tu'
+                        : message.sender?.username || 'Utente'}
+                    </p>
+
+                    <p className="text-sm whitespace-pre-wrap break-words">
+                      {message.content}
+                    </p>
+
+                    <time
+                      className="block text-[10px] opacity-70 text-right mt-2"
+                      dateTime={message.createdAt}
+                    >
+                      {new Date(
+                        message.createdAt
+                      ).toLocaleTimeString('it-IT', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </time>
+                  </div>
+                </div>
+              );
+            })}
+
+            <div ref={bottomRef} />
+          </section>
+
+          {/* ERRORE NON BLOCCANTE */}
+          {error && conversationId && (
+            <p
+              role="alert"
+              className="px-5 py-3 text-red-400 text-sm border-t border-mbare-border"
+            >
+              {error}
+            </p>
+          )}
+
+          {/* INVIO MESSAGGI */}
+          <form
+            onSubmit={handleSendMessage}
+            className="border-t-2 border-mbare-border p-4"
+          >
+            <div className="flex gap-3">
+
+              <input
+                type="text"
+                value={content}
+                onChange={event =>
+                  setContent(event.target.value)
+                }
+                maxLength={MAX_MESSAGE_LENGTH}
+                disabled={
+                  !conversationId ||
+                  sending
+                }
+                placeholder="Scrivi un messaggio..."
+                aria-label="Scrivi un messaggio"
+                className="flex-1 min-w-0 bg-mbare-black border border-mbare-border px-4 py-3 text-mbare-white outline-none focus:border-mbare-accent disabled:opacity-50"
+              />
+
+              <button
+                type="submit"
+                disabled={
+                  !conversationId ||
+                  !content.trim() ||
+                  sending
+                }
+                className="bg-mbare-accent text-black px-5 md:px-8 py-3 font-bold uppercase disabled:opacity-50 hover:brightness-110 transition"
+              >
+                {sending ? '...' : 'Invia'}
+              </button>
+            </div>
+
+            <div className="text-right mt-2">
+              <span className="text-[10px] font-mono text-mbare-muted">
+                {content.length}/{MAX_MESSAGE_LENGTH}
+              </span>
+            </div>
+          </form>
         </div>
+
+        <p className="text-center text-xs text-mbare-muted mt-5">
+          Non condividere password, dati bancari o informazioni sensibili.
+        </p>
       </div>
-    </div>
+    </main>
   );
 }
+
+export default BoardChat;

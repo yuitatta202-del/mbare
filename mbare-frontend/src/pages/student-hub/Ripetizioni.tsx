@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '../../hooks/useUser';
-import { supabase } from '../../lib/supabase';
 import { RipetizioniForm } from '../../components/student-hub/RipetizioniForm';
 import { RipetizioniCard } from '../../components/student-hub/RipetizioniCard';
 

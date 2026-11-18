@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../hooks/useUser';
-import { supabase } from '../../lib/supabase';
 import { StanzeForm } from '../../components/student-hub/StanzeForm';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';

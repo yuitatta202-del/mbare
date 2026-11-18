@@ -17,7 +17,11 @@ const Spiffera = lazy(() => import('./pages/Spiffera').then(m => ({ default: m.S
 const Arcade = lazy(() => import('./pages/Arcade').then(m => ({ default: m.Arcade })));
 const Community = lazy(() => import('./pages/Community').then(m => ({ default: m.Community })));
 const Bacheca = lazy(() => import('./pages/Bacheca').then(m => ({ default: m.Bacheca })));
-const BoardChat = lazy(() => import('./pages/board/BoardChat').then(m => ({ default: m.BoardChat }))); 
+
+const BoardChat = lazy(
+  () => import('./pages/board/BoardChat')
+);
+
 const Login = lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
 const Register = lazy(() => import('./pages/Register').then(m => ({ default: m.Register })));
 const Profile = lazy(() => import('./pages/Profile').then(m => ({ default: m.Profile })));
