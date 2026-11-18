@@ -36,7 +36,11 @@ export class NewsController {
    */
   static async getOne(req: Request, res: Response, next: NextFunction) {
     try {
-      const news = await NewsService.getNewsBySlug(req.params.slug);
+      // FIX: Cast a string per TypeScript
+      const slug = req.params.slug as string;
+      if (!slug) throw AppError.badRequest('Slug mancante.');
+
+      const news = await NewsService.getNewsBySlug(slug);
       res.json(news);
     } catch (error) { 
       next(error); 
@@ -49,7 +53,6 @@ export class NewsController {
    */
   static async create(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      // FIX CRUCIALE: Estrazione sicura dell'ID utente (Supabase a volte usa 'sub', a volte 'id')
       const authorId = req.user?.sub || req.user?.id;
       
       if (!authorId) {
@@ -69,17 +72,17 @@ export class NewsController {
    */
   static async update(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      // Validazione ID con BigInt (più sicuro del semplice controllo isNaN)
-      const rawId = req.params.id;
+      // FIX: Cast a string per TypeScript
+      const rawId = req.params.id as string;
+      if (!rawId) throw AppError.badRequest('ID news mancante.');
+
       let id: bigint;
-      
       try {
         id = BigInt(rawId);
       } catch (e) {
         throw AppError.badRequest('ID news non valido, minchia!');
       }
 
-      // Non passiamo tutto il body, ma solo i campi gestibili dal service
       const allowedFields = [
         'title', 'slug', 'content', 'excerpt', 
         'featuredImage', 'status', 'tags', 'categoryId'
@@ -105,10 +108,11 @@ export class NewsController {
    */
   static async delete(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      // Validazione ID con BigInt
-      const rawId = req.params.id;
+      // FIX: Cast a string per TypeScript
+      const rawId = req.params.id as string;
+      if (!rawId) throw AppError.badRequest('ID news mancante.');
+
       let id: bigint;
-      
       try {
         id = BigInt(rawId);
       } catch (e) {

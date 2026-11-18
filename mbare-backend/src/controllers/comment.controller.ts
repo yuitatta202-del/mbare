@@ -7,8 +7,14 @@ export class CommentController {
   // GET /api/comments/:targetType/:targetId
   static async getComments(req: Request, res: Response, next: NextFunction) {
     try {
-      const { targetType, targetId } = req.params;
+      // FIX: Cast a string per TypeScript
+      const targetType = req.params.targetType as string;
+      const targetId = req.params.targetId as string;
       
+      if (!targetType || !targetId) {
+        throw AppError.badRequest('Parametri mancanti.');
+      }
+
       if (!['POST', 'CONFESSION'].includes(targetType)) {
         throw AppError.badRequest('Tipo di target non valido.');
       }
@@ -20,11 +26,14 @@ export class CommentController {
   // POST /api/comments/:targetType/:targetId
   static async create(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const { targetType, targetId } = req.params;
+      // FIX: Cast a string per TypeScript
+      const targetType = req.params.targetType as string;
+      const targetId = req.params.targetId as string;
       const { content, authorName, parentId } = req.body;
       const userId = req.user?.sub || req.user?.id;
 
       if (!userId) throw AppError.badRequest('Devi essere loggato per commentare.');
+      if (!targetType || !targetId) throw AppError.badRequest('Parametri mancanti.');
       if (!['POST', 'CONFESSION'].includes(targetType)) throw AppError.badRequest('Tipo di target non valido.');
 
       const comment = await CommentService.create({
@@ -43,11 +52,13 @@ export class CommentController {
   // DELETE /api/comments/:id
   static async delete(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const { id } = req.params;
+      // FIX: Cast a string per TypeScript
+      const id = req.params.id as string; 
       const userId = req.user?.sub || req.user?.id;
       const userRole = req.user?.user_role || 'USER';
 
       if (!userId) throw AppError.badRequest('Utente non identificato.');
+      if (!id) throw AppError.badRequest('ID commento mancante.');
 
       await CommentService.delete(BigInt(id), userId, userRole);
       res.json({ message: 'Commento eliminato.' });

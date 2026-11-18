@@ -1,5 +1,5 @@
-import { prisma } from '../config/prisma';
-import { AppError } from '../utils/errors';
+import { prisma } from '../config/prisma.js';
+import { AppError } from '../utils/errors.js';
 
 export class ChatService {
   /**
@@ -79,8 +79,8 @@ export class ChatService {
     await prisma.conversation.update({
       where: { id: conversationId },
       data: { 
-        lastMessageId: message.id,
-        updatedAt: new Date()
+        lastMessageId: message.id
+        // Non serve updatedAt: new Date() perché è gestito da @updatedAt
       }
     });
 

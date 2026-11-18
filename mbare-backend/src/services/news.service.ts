@@ -136,7 +136,7 @@ export class NewsService {
     }
 
     // Gestione categoria in caso di aggiornamento
-    let categoryId = existing.categoryId;
+    let categoryId: bigint | null = existing.categoryId;
     if (data.categoryId !== undefined) {
       if (data.categoryId === null || data.categoryId === '') {
         categoryId = null;

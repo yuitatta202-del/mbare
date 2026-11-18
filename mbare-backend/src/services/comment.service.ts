@@ -1,6 +1,6 @@
 import { prisma } from '../config/prisma.js';
 import { AppError } from '../utils/errors.js';
-import { ModerationService } from './moderation.service.js'; // <-- IMPORT AGGIUNTO
+import { ModerationService } from './moderation.service.js';
 
 type TargetType = 'POST' | 'CONFESSION';
 
@@ -10,9 +10,17 @@ export class CommentService {
    */
   static async getComments(targetType: TargetType, targetId: string) {
     let originalAuthorId: string | null = null;
-    
+    let parsedId: bigint | null = null;
+
+    // Validazione sicura dell'ID per i POST (che usano BigInt)
     if (targetType === 'POST') {
-      const post = await prisma.post.findUnique({ where: { id: BigInt(targetId) }, select: { authorId: true } });
+      try {
+        parsedId = BigInt(targetId);
+      } catch (e) {
+        throw AppError.badRequest('ID del post non valido.');
+      }
+      
+      const post = await prisma.post.findUnique({ where: { id: parsedId }, select: { authorId: true } });
       originalAuthorId = post?.authorId || null;
     } else {
       const spiffera = await prisma.spiffera.findUnique({ where: { id: targetId }, select: { authorId: true } });
@@ -20,13 +28,13 @@ export class CommentService {
     }
 
     const whereClause: any = {
-      status: 'approved', // Prendiamo SOLO i commenti approvati
+      status: 'approved', 
       deletedAt: null,
       parentId: null, 
     };
 
-    if (targetType === 'POST') {
-      whereClause.postId = BigInt(targetId);
+    if (targetType === 'POST' && parsedId) {
+      whereClause.postId = parsedId;
     } else {
       whereClause.spifferaId = targetId;
     }
@@ -79,7 +87,6 @@ export class CommentService {
       throw AppError.badRequest('Il commento è troppo lungo (max 500 caratteri).');
     }
 
-    // 🔥 LAYER DI MODERAZIONE AUTOMATICA
     const moderationStatus = await ModerationService.analyzeText(data.content);
 
     if (moderationStatus === 'rejected') {
@@ -88,17 +95,29 @@ export class CommentService {
 
     let finalParentId: bigint | null = null;
     if (data.parentId) {
-      finalParentId = BigInt(data.parentId);
+      try {
+        finalParentId = BigInt(data.parentId);
+      } catch (e) {
+        throw AppError.badRequest('ID del commento padre non valido.');
+      }
+      
       const parent = await prisma.comment.findUnique({ where: { id: finalParentId } });
       if (!parent) throw AppError.notFound('Commento padre non trovato.');
-      if (parent.parentId) finalParentId = parent.parentId; // Max 1 livello di risposte
+      if (parent.parentId) finalParentId = parent.parentId; 
     }
 
-    const targetData = data.targetType === 'POST' 
-      ? { postId: BigInt(data.targetId) } 
-      : { spifferaId: data.targetId };
+    // Validazione dell'ID target in base al tipo
+    let targetData;
+    if (data.targetType === 'POST') {
+      try {
+        targetData = { postId: BigInt(data.targetId) };
+      } catch (e) {
+        throw AppError.badRequest('ID del post non valido.');
+      }
+    } else {
+      targetData = { spifferaId: data.targetId };
+    }
 
-    // Salviamo con lo stato deciso dal moderatore automatico ('approved' o 'pending')
     return await prisma.comment.create({
       data: {
         ...targetData,
@@ -106,7 +125,7 @@ export class CommentService {
         parentId: finalParentId,
         authorId: data.authorId,
         authorName: data.authorName?.trim() || null,
-        status: moderationStatus, // <-- DINAMICO: approved o pending
+        status: moderationStatus, 
       }
     });
   }
