@@ -1,4 +1,4 @@
-import { prisma } from '../config/prisma';
+import { prisma } from '../config/prisma.js';
 
 export class EventService {
   // 1. Recupera tutti gli eventi approvati (per la pagina Community)

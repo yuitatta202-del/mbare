@@ -1121,3 +1121,23 @@ enum one_time_token_type {
 
   @@schema("auth")
 }
+
+
+model CoinPurchase {
+  id              String    @id @default(uuid()) @db.Uuid
+  userId          String    @map("user_id") @db.Uuid
+  packageId       String    @map("package_id")
+  coins           Int
+  amountCents     Int       @map("amount_cents")
+  currency        String    @default("eur")
+  stripeSessionId String?   @unique @map("stripe_session_id")
+  status          String    @default("pending")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  paidAt          DateTime? @map("paid_at") @db.Timestamptz(6)
+
+  @@index([userId, createdAt])
+  @@map("coin_purchases")
+  @@schema("public")
+}
+
