@@ -1,32 +1,175 @@
+
 <!doctype html>
-<html lang="en">
+<html lang="it">
   <head>
-
-<!-- Google Tag Manager - MBARE -->
-<script>
-  (function(w,d,s,l,i){
-    w[l]=w[l]||[];
-    w[l].push({
-      'gtm.start': new Date().getTime(),
-      event:'gtm.js'
-    });
-    var f=d.getElementsByTagName(s)[0],
-        j=d.createElement(s),
-        dl=l!='dataLayer'?'&l='+l:'';
-    j.async=true;
-    j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;
-    f.parentNode.insertBefore(j,f);
-  })(window,document,'script','dataLayer','GTM-TNRHJMLL');
-</script>
-<!-- End Google Tag Manager -->
-
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>mbare-frontend</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+
+    <!-- =====================================
+         MBARE - BRAND & SEO
+    ====================================== -->
+
+    <title>
+      MBARE | Community, Notizie ed Eventi per Studenti Universitari
+    </title>
+
+    <meta
+      name="description"
+      content="MBARE è la community degli studenti universitari: scopri notizie, eventi, gruppi di studio, annunci e confessioni. Vivi l'università senza filtri."
+    />
+
+    <meta
+      name="robots"
+      content="index, follow, max-image-preview:large"
+    />
+
+    <meta
+      name="googlebot"
+      content="index, follow, max-image-preview:large"
+    />
+
+    <meta name="author" content="MBARE" />
+    <meta name="application-name" content="MBARE" />
+    <meta name="theme-color" content="#0a0a0a" />
+
+    <!-- Canonical della homepage.
+         Nelle pagine interne deve essere aggiornato
+         con l'URL specifico di quella pagina. -->
+    <link
+      rel="canonical"
+      href="https://mbare.site/"
+    />
+
+    <!-- =====================================
+         FAVICON
+    ====================================== -->
+
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="/favicon.svg"
+    />
+
+    <!-- =====================================
+         OPEN GRAPH / SOCIAL SHARING
+    ====================================== -->
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="MBARE" />
+    <meta property="og:locale" content="it_IT" />
+
+    <meta
+      property="og:title"
+      content="MBARE | La Community degli Studenti Universitari"
+    />
+
+    <meta
+      property="og:description"
+      content="Notizie, eventi, gruppi di studio, annunci e confessioni. Scopri MBARE, la community universitaria senza filtri."
+    />
+
+    <meta
+      property="og:url"
+      content="https://mbare.site/"
+    />
+
+    <!-- Twitter / X -->
+    <meta
+      name="twitter:card"
+      content="summary"
+    />
+
+    <meta
+      name="twitter:title"
+      content="MBARE | La Community degli Studenti Universitari"
+    />
+
+    <meta
+      name="twitter:description"
+      content="News, eventi, community e gruppi di studio. Vivi l'università con MBARE."
+    />
+
+    <!-- =====================================
+         STRUCTURED DATA: SCHEMA.ORG
+    ====================================== -->
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://mbare.site/#organization",
+            "name": "MBARE",
+            "url": "https://mbare.site/",
+            "description": "MBARE è una piattaforma online dedicata alla community degli studenti universitari."
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://mbare.site/#website",
+            "url": "https://mbare.site/",
+            "name": "MBARE",
+            "inLanguage": "it-IT",
+            "publisher": {
+              "@id": "https://mbare.site/#organization"
+            }
+          }
+        ]
+      }
+    </script>
+
+    <!-- =====================================
+         GOOGLE TAG MANAGER - MBARE
+    ====================================== -->
+
+    <script>
+      (function(w,d,s,l,i){
+        w[l]=w[l]||[];
+        w[l].push({
+          'gtm.start': new Date().getTime(),
+          event:'gtm.js'
+        });
+
+        var f=d.getElementsByTagName(s)[0],
+            j=d.createElement(s),
+            dl=l!='dataLayer'?'&l='+l:'';
+
+        j.async=true;
+        j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;
+        f.parentNode.insertBefore(j,f);
+      })(
+        window,
+        document,
+        'script',
+        'dataLayer',
+        'GTM-TNRHJMLL'
+      );
+    </script>
+
+    <!-- End Google Tag Manager -->
   </head>
+
   <body>
+    <!-- Google Tag Manager (noscript) -->
+    <noscript>
+      <iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-TNRHJMLL"
+        height="0"
+        width="0"
+        style="display:none;visibility:hidden"
+        title="Google Tag Manager"
+      ></iframe>
+    </noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+
+    <script
+      type="module"
+      src="/src/main.tsx"
+    ></script>
   </body>
 </html>
