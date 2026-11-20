@@ -2,19 +2,26 @@
 <!doctype html>
 <html lang="it">
   <head>
+    <!-- =====================================
+         MBARE - DOCUMENT SETTINGS
+    ====================================== -->
+
     <meta charset="UTF-8" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0"
     />
 
+    <meta name="theme-color" content="#0a0a0a" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="application-name" content="MBARE" />
+    <meta name="apple-mobile-web-app-title" content="MBARE" />
+
     <!-- =====================================
-         MBARE - BRAND & SEO
+         MBARE - SEO
     ====================================== -->
 
-    <title>
-      MBARE | Community, Notizie ed Eventi per Studenti Universitari
-    </title>
+    <title>MBARE | Community, Notizie ed Eventi per Studenti Universitari</title>
 
     <meta
       name="description"
@@ -27,39 +34,62 @@
     />
 
     <meta
-      name="googlebot"
-      content="index, follow, max-image-preview:large"
+      name="author"
+      content="MBARE"
     />
 
-    <meta name="author" content="MBARE" />
-    <meta name="application-name" content="MBARE" />
-    <meta name="theme-color" content="#0a0a0a" />
-
-    <!-- Canonical della homepage.
-         Nelle pagine interne deve essere aggiornato
-         con l'URL specifico di quella pagina. -->
+    <!-- Canonical iniziale della homepage.
+         IMPORTANTE: per le pagine interne serve
+         un canonical specifico per ogni URL. -->
     <link
       rel="canonical"
       href="https://mbare.site/"
     />
 
     <!-- =====================================
-         FAVICON
+         MBARE - FAVICON
     ====================================== -->
 
+    <!-- Icona browser -->
     <link
       rel="icon"
-      type="image/svg+xml"
-      href="/favicon.svg"
+      href="/favicon.ico"
+      sizes="any"
+    />
+
+    <!-- Icona PNG per browser e Google -->
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="48x48"
+      href="/favicon-48.png"
+    />
+
+    <!-- Icona per iPhone e iPad -->
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="/apple-touch-icon.png"
     />
 
     <!-- =====================================
-         OPEN GRAPH / SOCIAL SHARING
+         OPEN GRAPH - FACEBOOK / WHATSAPP
     ====================================== -->
 
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="MBARE" />
-    <meta property="og:locale" content="it_IT" />
+    <meta
+      property="og:type"
+      content="website"
+    />
+
+    <meta
+      property="og:site_name"
+      content="MBARE"
+    />
+
+    <meta
+      property="og:locale"
+      content="it_IT"
+    />
 
     <meta
       property="og:title"
@@ -76,7 +106,10 @@
       content="https://mbare.site/"
     />
 
-    <!-- Twitter / X -->
+    <!-- =====================================
+         X / TWITTER
+    ====================================== -->
+
     <meta
       name="twitter:card"
       content="summary"
@@ -93,7 +126,7 @@
     />
 
     <!-- =====================================
-         STRUCTURED DATA: SCHEMA.ORG
+         SCHEMA.ORG - STRUCTURED DATA
     ====================================== -->
 
     <script type="application/ld+json">
@@ -105,13 +138,20 @@
             "@id": "https://mbare.site/#organization",
             "name": "MBARE",
             "url": "https://mbare.site/",
-            "description": "MBARE è una piattaforma online dedicata alla community degli studenti universitari."
+            "description": "MBARE è una piattaforma online dedicata alla community degli studenti universitari.",
+            "logo": {
+              "@type": "ImageObject",
+              "url": "https://mbare.site/icon-512.png",
+              "width": 512,
+              "height": 512
+            }
           },
           {
             "@type": "WebSite",
             "@id": "https://mbare.site/#website",
             "url": "https://mbare.site/",
             "name": "MBARE",
+            "description": "Community, notizie, eventi e gruppi di studio per studenti universitari.",
             "inLanguage": "it-IT",
             "publisher": {
               "@id": "https://mbare.site/#organization"
@@ -165,6 +205,7 @@
     </noscript>
     <!-- End Google Tag Manager (noscript) -->
 
+    <!-- React Application -->
     <div id="root"></div>
 
     <script
